@@ -1,16 +1,16 @@
-    import * as fs from 'node:fs'; // Typescript apparently has issues with comments. This needs to be here to stop an error. Magic.
-    import axios from 'axios';
+    import * as fs from 'node:fs'; 
+    import axios from 'axios'; //Needed something that would make posts requests and all that
     
     // Defining the API and country, previous iteration was me getting lost in the sauce and overthinking it.
-    const apiUrl = 'https://date.nager.at/api/publicholidays/2024/Austria';
-    const country = 'Austria';
+    const apiUrl = 'https://date.nager.at/api/v3/PublicHolidays/2024/AT'; // Had misspelled and omitted v3 and country code, should hopefully work now
+    const country = 'Austria'; // this is what gets printed out on line 53 for the country field
     
     // Got to make a GET request to the API endpoint
     axios.get(apiUrl)
       .then(response => {
-        console.log(`response.status: ${response.status}`); //remove this once testing done
-        console.log`Response data: ${response.data}`;       // remove this once testing done
-        const holidays = response.data;
+        // console.log(`response.status: ${response.status}`); 
+        // console.log`Response data: ${response.data}`;       
+        const holidays = response.data;                     
     
         // Write the holidays to the austrian holidays file, or it would if fs would work
         function writeHolidaysToCsv(holidays: { date: string, description: string, localizeDate: string }[]) {
@@ -51,3 +51,4 @@
     
     // Print a message to the console
     console.log(`Austrian holidays for ${country} have been written to a CSV file.`);
+
