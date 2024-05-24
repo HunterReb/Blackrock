@@ -1,47 +1,53 @@
-import * as URL from 'url' //Fairly sure I need to install a module into this for the GET to work from API, spend some time looking into options
+    import * as fs from 'node:fs'; // Typescript apparently has issues with comments. This needs to be here to stop an error. Magic.
+    import axios from 'axios';
+    
+    // Defining the API and country, previous iteration was me getting lost in the sauce and overthinking it.
+    const apiUrl = 'https://date.nager.at/api/publicholidays/2024/Austria';
+    const country = 'Austria';
+    
+    // Got to make a GET request to the API endpoint
+    axios.get(apiUrl)
+      .then(response => {
+        console.log(`response.status: ${response.status}`); //remove this once testing done
+        console.log`Response data: ${response.data}`;       // remove this once testing done
+        const holidays = response.data;
+    
+        // Write the holidays to the austrian holidays file, or it would if fs would work
+        function writeHolidaysToCsv(holidays: { date: string, description: string, localizeDate: string }[]) {
+          const csvWriter = fs.createWriteStream(`austrian-holidays-2024.csv`, {
+            flags: 'w',
+            encoding: 'utf8',
+          });
+    
+          // Header
+          csvWriter.write(`"Name","Date","Days until","Weekends"\n`);
+    
+          // Write each holiday record
+          holidays.forEach((holiday) => {
+            const date = new Date(holiday.date);
+            const today = new Date();
+            let daysUntil = Math.ceil((date.getTime() - today.getTime()) / (1000 * 3600 * 24));
+            if (isNaN(daysUntil)) {
+              daysUntil = 0;
+            } else {
+              daysUntil = Number(daysUntil);
+            }
 
-interface Holiday {
-    name: string;
-    date: string;
-    daysUntil: string;
-    weekends: string;
-}
-
-async function getHolidays() {
-    const response = await fetch('https://date.nager.at/api/publicholidays/2024/Austria');
-    const holidays = await response.json();
-    const csvData: Holiday[] = [];
-
-    for (const holiday of holidays) {
-        const date = new Date(holiday.date);
-        const daysUntil = date > new Date() ? `+${Math.round((date.getTime() - Date.now()) / (1000 * 86400))}` : ''; 
-        const weekends = holiday.date.includes('Saturday') || holiday.date.includes('Sunday') ? 'Yes' : 'No';
-        csvData.push({ //Went through whole file, forgot that csv parser module is needed for this
-            name: holiday.name,
-            date: holiday.date,
-            daysUntil: daysUntil, 
-            weekends: weekends,
-        });
-    }
-
-
-const csvString = csvData.map((holiday) => Object.values(holiday).join(',')).join('/n');
-const csvFile = `austrian-holidays-2024.csv`;
-
-const formData = new FormData();
-formData.append('sheet', '1');
-formData.append('response', csvString)
-formData.append('title', 'austrian-holidays-2024.csv');
-
-await
-fetch('https://docs.google.com/forms/d/e/1FAIP2AaM9U3KUqOxQYwXsQjYkZ7v__KQxGwLQK3iO1vGjPkgRqZMzQ/formResponse',
-{
-    method: 'POST',
-    body: formData,
-});
-
-console.log(`CSV file saved to ${csvFile}`) //Providing feedback to confirm the necessary action is completed
-}
-
-getHolidays();
-
+            const isWeekend = date.getDay() === 0 || date.getDay() === 6; // double check this with console logs and a quick function if have time
+    
+            csvWriter.write(`"${holiday.description}","${holiday.date}","${daysUntil}","${isWeekend ? 'Yes' : 'No'}"\n`);
+          });
+    
+          // Close the CSV writer
+          csvWriter.end();
+        }
+    
+        // Write the holidays to a CSV file
+        writeHolidaysToCsv(holidays);
+      })
+      .catch(error => {
+        console.error(error);
+      });
+    
+    // Print a message to the console
+    console.log(`Austrian holidays for ${country} have been written to a CSV file.`);
